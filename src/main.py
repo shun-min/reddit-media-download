@@ -10,12 +10,15 @@ class Downloader(QtWidgets.QWidget):
         self.init_ui()
 
     def init_ui(self):
-        self.dialog = QtWidgets.QDialog()
+        self.label = QtWidgets.QLabel("Paste path to download")
         self.layout = QtWidgets.QHBoxLayout()
-        self.path_txt = QtWidgets.QLineEdit()
+        self.link_txt = QtWidgets.QLineEdit()
+        self.downlaod_path_txt = QtWidgets.QLineEdit()
         self.download_btn = QtWidgets.QPushButton("Download")
 
-        self.layout.addWidget(self.path_txt)
+        self.layout.addWidget(self.label)
+        self.layout.addWidget(self.link_txt)
+        self.layout.addWidget(self.downlaod_path_txt)
         self.layout.addWidget(self.download_btn)
 
         self.setLayout(self.layout)
@@ -24,7 +27,9 @@ class Downloader(QtWidgets.QWidget):
         self.download_btn.clicked.connect(self.download)
 
     def download(self):
-        m3u8_To_MP4.download("https://v.redd.it/gi4n5i6qeyt81/HLSPlaylist.m3u8")
+        # https://v.redd.it/gi4n5i6qeyt81/HLSPlaylist.m3u8
+        #/home/lam/Documents/PycharmProjects/m3u8Download/sample
+        m3u8_To_MP4.download(self.link_txt.text(), mp4_file_dir=self.downlaod_path_txt.text())
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])
