@@ -1,9 +1,8 @@
 #!/usr/bin/python
-import os
 import sys
 
 import m3u8_To_MP4
-from PySide2 import QtWidgets, QtGui, QtCore
+from PySide2 import QtWidgets
 
 
 class Downloader(QtWidgets.QWidget):
@@ -13,41 +12,49 @@ class Downloader(QtWidgets.QWidget):
         self.set_connections()
 
     def init_ui(self):
-        self.vlayout = QtWidgets.QVBoxLayout()
-        self.instr_label = QtWidgets.QLabel("Paste url to download")
-        self.link_txt = QtWidgets.QLineEdit()
-        self.path_label = QtWidgets.QLabel("Download to directory")
+        self.setWindowTitle("m3u8 to mp4 Downloader")
+        self.setFixedWidth(500)
+        self.setFixedHeight(250)
 
-        self.hlayout = QtWidgets.QHBoxLayout()
+        self.vlayout = QtWidgets.QVBoxLayout()
+        self.src_layout = QtWidgets.QHBoxLayout()
+        self.src_label = QtWidgets.QLabel("Paste url to download:")
+        self.url_txt = QtWidgets.QLineEdit()
+        self.path_label = QtWidgets.QLabel("Download to directory")
+        self.dst_layout = QtWidgets.QHBoxLayout()
+        self.dst_label = QtWidgets.QLabel("Select destination folder")
         self.dir_btn = QtWidgets.QPushButton("Select...")
         self.downlaod_path_txt = QtWidgets.QLineEdit()
         self.download_btn = QtWidgets.QPushButton("Download")
 
-        self.hlayout.addWidget(self.downlaod_path_txt)
-        self.hlayout.addWidget(self.dir_btn)
+        self.src_layout.addWidget(self.src_label)
+        self.src_layout.addWidget(self.url_txt)
 
-        self.vlayout.addWidget(self.instr_label)
-        self.vlayout.addWidget(self.link_txt)
-        self.vlayout.addLayout(self.hlayout)
+        self.dst_layout.addWidget(self.downlaod_path_txt)
+        self.dst_layout.addWidget(self.dir_btn)
+
+        self.vlayout.addLayout(self.src_layout)
+        self.vlayout.insertSpacing(1, 20)
+        self.vlayout.addWidget(self.dst_label)
+        self.vlayout.addLayout(self.dst_layout)
         self.vlayout.addWidget(self.download_btn)
 
         self.setLayout(self.vlayout)
 
     def set_connections(self):
-        self.dir_btn.clicked.connect(self.open_explorer)
+        self.dir_btn.clicked.connect(self.set_directory)
         self.download_btn.clicked.connect(self.download)
 
-    def open_explorer(self):
-        os.system("xdg-open '%s'" % "/home")
+    def set_directory(self):
+        folder_path = str(QtWidgets.QFileDialog.getExistingDirectory(self, "Select..."))
+        self.downlaod_path_txt.setText(folder_path)
 
     def download(self):
-        # https://v.redd.it/gi4n5i6qeyt81/HLSPlaylist.m3u8wecha
-        #/home/lam/Documents/PycharmProjects/m3u8Download/sample
-        print("<<<<<<{} {}".format(self.link_txt.text(), self.downlaod_path_txt.text()))
-        m3u8_To_MP4.download(self.link_txt.text(), mp4_file_dir=self.downlaod_path_txt.text())
+        m3u8_To_MP4.download(self.url_txt.text(), mp4_file_dir=self.downlaod_path_txt.text())
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])
+
     downlaoder = Downloader()
     downlaoder.show()
 
