@@ -2,7 +2,7 @@
 import sys
 
 import m3u8_To_MP4
-from PySide2 import QtWidgets
+from PyQt5 import QtWidgets
 
 
 class Downloader(QtWidgets.QWidget):
