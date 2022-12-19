@@ -1,5 +1,7 @@
 #!/usr/bin/python
+import re
 import sys
+from urllib.request import Request, urlopen
 
 import m3u8_To_MP4
 from PyQt5 import QtWidgets
@@ -18,7 +20,7 @@ class Downloader(QtWidgets.QWidget):
 
         self.vlayout = QtWidgets.QVBoxLayout()
         self.src_layout = QtWidgets.QHBoxLayout()
-        self.src_label = QtWidgets.QLabel("Paste url to download:")
+        self.src_label = QtWidgets.QLabel("Paste url to scrape:")
         self.url_txt = QtWidgets.QLineEdit()
         self.path_label = QtWidgets.QLabel("Download to directory")
         self.dst_layout = QtWidgets.QHBoxLayout()
@@ -50,7 +52,25 @@ class Downloader(QtWidgets.QWidget):
         self.downlaod_path_txt.setText(folder_path)
 
     def download(self):
-        m3u8_To_MP4.download(self.url_txt.text(), mp4_file_dir=self.downlaod_path_txt.text())
+        url = self.scrape_for_url(self.downlaod_path_txt.text())
+        m3u8_To_MP4.download(self.url_txt.text(), mp4_file_dir=url)
+
+    def scrape_for_url(self, url):
+        # url = "https://www.reddit.com/r/malaysia/comments/vcnhkc/daylight_supermoon_near_the_tip_of_kl_twin_towers/"
+        user_agent = {'User-agent': 'Mozilla/5.0'}
+        req = Request(url, headers=user_agent)
+        page = urlopen(req)
+        html_bytes = page.read()
+        html = html_bytes.decode("utf-8")
+
+        # TODO: Test string for UI dev
+        # html = '123https://v.redd.it/0sljhvn5sm5a1/HLSPlaylist.m3u8123'
+        ext = "m3u8"
+        raw_pattern = r".+(?P<link>https.+.{}).+".format(ext)
+        pattern = re.compile(raw_pattern)
+        results = re.findall(pattern, html)
+        return results
+
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])
