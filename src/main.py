@@ -1,23 +1,16 @@
 #!/usr/bin/python
 import re
 import sys
-import requests
-import requests.auth
-
-from utils import REDDIT
 
 import m3u8_To_MP4
 from PyQt5 import QtWidgets, QtCore
 
-id = REDDIT.ID
-secret = REDDIT.SECRET
-username = REDDIT.USERNAME
-password = REDDIT.PASSWORD
-
+from utils import get_auth
 
 class Downloader(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
+        self.video_links = list()
         self.init_ui()
         self.set_connections()
 
@@ -38,7 +31,12 @@ class Downloader(QtWidgets.QWidget):
         self.downlaod_path_txt = QtWidgets.QLineEdit()
         self.download_btn = QtWidgets.QPushButton("Download")
 
-        self.media_tree_list = QtWidgets.QTreeWidget()
+        self.video_tree_list = QtWidgets.QTreeWidget()
+        self.img_tree_list = QtWidgets.QTreeWidget()
+
+        self.media_layout = QtWidgets.QHBoxLayout()
+        self.media_layout.addWidget(self.video_tree_list)
+        self.media_layout.addWidget(self.img_tree_list)
 
         self.src_layout.addWidget(self.src_label)
         self.src_layout.addWidget(self.url_txt)
@@ -48,7 +46,7 @@ class Downloader(QtWidgets.QWidget):
         self.dst_layout.addWidget(self.dir_btn)
 
         self.vlayout.addLayout(self.src_layout)
-        self.vlayout.addWidget(self.media_tree_list)
+        self.vlayout.addLayout(self.media_layout)
         self.vlayout.insertSpacing(1, 20)
         self.vlayout.addWidget(self.dst_label)
         self.vlayout.addLayout(self.dst_layout)
@@ -56,50 +54,19 @@ class Downloader(QtWidgets.QWidget):
 
         self.setLayout(self.vlayout)
 
-        # self.get_media_signal = QtCore.pyqtSignal()
-        # self.get_media_signal.connect(self.get_media_btn)
-
     def set_connections(self):
         self.dir_btn.clicked.connect(self.set_directory)
         self.get_media_btn.clicked.connect(self.get_media_links)
         self.download_btn.clicked.connect(self.download)
 
-    def get_auth(self):
-        # getting reddit authentication info
-        client_auth = requests.auth.HTTPBasicAuth(id, secret)
-        post_data = {"grant_type": "password", "username": username, "password": password}
-        headers = {
-            "User-Agent": "Reddit automation script"
-        }
-
-        # get token access ID
-        TOKEN_ACCESS_ENDPOINT = "https://www.reddit.com/api/v1/access_token"
-        response = requests.post(TOKEN_ACCESS_ENDPOINT, data=post_data, headers=headers, auth=client_auth)
-        if response.status_code == 200:
-            token_id = response.json()["access_token"]
-
-        # use API to get json object of a subreddit page
-        OAUTH_ENDPOINT = "https://oauth.reddit.com"
-        params = {
-            "limit": 100
-        }
-        header2 = {
-            "User-Agent": "Reddit automation script",
-            "Authorization": "Bearer" + token_id
-        }
-        # https://reddit.com/r/malaysia/comments/vcnhkc/daylight_supermoon_near_the_tip_of_kl_twin_towers/.json
-        subreddit_url = self.url_txt.text().split("reddit.com")[1] + ".json"
-        response2 = requests.get(OAUTH_ENDPOINT + subreddit_url, headers=header2, params=params)
-        if response2.status_code == 200:
-            data = response2.json()
-        return data
 
     def add_media_to_tree(self):
         for media_item in self.video_links:
-            tree_item = QtWidgets.QTreeWidgetItem(self.media_tree_list)
+            tree_item = QtWidgets.QTreeWidgetItem(self.video_tree_list)
             tree_item.setText(0, media_item)
+
     def get_media_links(self):
-        data = self.get_auth()
+        data = get_auth(self.url_txt.text())
         parent_lists = list()
         for d in data:
             children = d["data"]["children"]
@@ -110,7 +77,6 @@ class Downloader(QtWidgets.QWidget):
                 except KeyError:
                     continue
 
-        self.video_links = list()
         for p in parent_lists:
             try:
                 video_link = p[0]["media"]["reddit_video"]["fallback_url"]
@@ -125,8 +91,7 @@ class Downloader(QtWidgets.QWidget):
         self.downlaod_path_txt.setText(folder_path)
 
     def download(self):
-        url = self.scrape_for_url(self.downlaod_path_txt.text())
-        m3u8_To_MP4.download(self.url_txt.text(), mp4_file_dir=url)
+        m3u8_To_MP4.download(self.url_txt.text(), mp4_file_dir=self.url)
 
 
 if __name__ == "__main__":
