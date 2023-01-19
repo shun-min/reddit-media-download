@@ -1,16 +1,19 @@
 #!/usr/bin/python
-import re
+import os
 import sys
+import urllib
 
-import m3u8_To_MP4
+from pathlib import Path
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from utils import get_auth
 
-class Downloader(QWidget):
+
+class Downloader(QDialog):
     def __init__(self):
         super().__init__()
+        self.download_dest = None
         self.video_links = list()
         self.init_ui()
         self.set_connections()
@@ -29,7 +32,9 @@ class Downloader(QWidget):
         self.dst_label = QLabel("Select destination folder")
         self.dir_btn = QPushButton("Select...")
         self.get_media_btn = QPushButton("Get Media from URL")
-        self.downlaod_path_txt = QLineEdit()
+        self.download_path_lineedit = QLineEdit()
+        # TODO: remove
+        self.url_txt.setText("https://reddit.com/r/malaysia/comments/vcnhkc/daylight_supermoon_near_the_tip_of_kl_twin_towers")
         self.download_btn = QPushButton("Download")
 
         self.video_label = QLabel("Videos: ")
@@ -53,7 +58,7 @@ class Downloader(QWidget):
         self.src_layout.addWidget(self.url_txt)
         self.src_layout.addWidget(self.get_media_btn)
 
-        self.dst_layout.addWidget(self.downlaod_path_txt)
+        self.dst_layout.addWidget(self.download_path_lineedit)
         self.dst_layout.addWidget(self.dir_btn)
 
         self.vlayout.addLayout(self.src_layout)
@@ -74,9 +79,12 @@ class Downloader(QWidget):
         tree_item = QStringListModel()
         tree_item.setStringList(self.video_links)
         self.video_tree_list.setModel(tree_item)
+        # TODO: add feature to multi-select media to download
+        self.selected_media = self.video_links
 
     def get_media_links(self):
         # https://reddit.com/r/malaysia/comments/vcnhkc/daylight_supermoon_near_the_tip_of_kl_twin_towers
+        # https://v.redd.it/cjurndouho591/DASH_1080.mp4?source=fallback
         data = get_auth(self.url_txt.text())
         parent_lists = list()
         for d in data:
@@ -99,10 +107,17 @@ class Downloader(QWidget):
 
     def set_directory(self):
         folder_path = str(QFileDialog.getExistingDirectory(self, "Select..."))
-        self.downlaod_path_txt.setText(folder_path)
+        self.download_path_lineedit.setText(folder_path)
+        self.download_dest = self.download_path_lineedit.text()
 
     def download(self):
-        m3u8_To_MP4.download(self.url_txt.text(), mp4_file_dir=self.url)
+        # m3u8_To_MP4.download(self.url_txt.text(), mp4_file_dir=self.url)
+        for media in self.selected_media:
+            dst_file = os.path.join(self.download_dest, str(self.selected_media.index(media)) + ".mp4")
+            dest_path = Path(dst_file)
+            with urllib.request.urlopen(media) as response, open(dest_path, 'wb') as x:
+                data = response.read()
+                x.write(data)
 
 
 if __name__ == "__main__":

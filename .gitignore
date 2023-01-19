@@ -129,4 +129,4 @@ dmypy.json
 .pyre/
 
 # client
-./utils.py
+.enums.py
