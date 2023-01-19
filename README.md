@@ -1,2 +1,2 @@
-# m3u8Download
-For downloading m3u8 links from sites. WIP
+# Media Download
+For downloading media from reddit sites. WIP
