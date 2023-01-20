@@ -7,7 +7,7 @@ from pathlib import Path
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from utils import get_auth
+from utils import get_auth, get_url_response
 
 
 class Downloader(QDialog):
@@ -15,6 +15,7 @@ class Downloader(QDialog):
         super().__init__()
         self.download_dest = None
         self.video_links = list()
+        self.image_links = list()
         self.init_ui()
         self.set_connections()
 
@@ -34,7 +35,9 @@ class Downloader(QDialog):
         self.get_media_btn = QPushButton("Get Media from URL")
         self.download_path_lineedit = QLineEdit()
         # TODO: remove
-        self.url_txt.setText("https://reddit.com/r/malaysia/comments/vcnhkc/daylight_supermoon_near_the_tip_of_kl_twin_towers")
+        # https://www.reddit.com/r/test_random/comments/10guglg/testing_imgs
+        # "https://reddit.com/r/malaysia/comments/vcnhkc/daylight_supermoon_near_the_tip_of_kl_twin_towers"
+        self.url_txt.setText("https://www.reddit.com/r/test_random/comments/10guglg/testing_imgs")
         self.download_btn = QPushButton("Download")
 
         self.video_label = QLabel("Videos: ")
@@ -76,30 +79,44 @@ class Downloader(QDialog):
         self.download_btn.clicked.connect(self.download)
 
     def add_media_to_tree(self):
-        tree_item = QStringListModel()
-        tree_item.setStringList(self.video_links)
-        self.video_tree_list.setModel(tree_item)
-        # TODO: add feature to multi-select media to download
-        self.selected_media = self.video_links
+        if self.video_links:
+            tree_item = QStringListModel()
+            tree_item.setStringList(self.video_links)
+            self.video_tree_list.setModel(tree_item)
+            # TODO: add feature to multi-select media to download
+            self.selected_media = self.video_links
+
+        if self.image_links:
+            img_tree_item = QStringListModel()
+            img_tree_item.setStringList(self.image_links)
+            self.img_tree_list.setModel(img_tree_item)
+            self.selected_media = self.image_links
 
     def get_media_links(self):
         # https://reddit.com/r/malaysia/comments/vcnhkc/daylight_supermoon_near_the_tip_of_kl_twin_towers
         # https://v.redd.it/cjurndouho591/DASH_1080.mp4?source=fallback
-        data = get_auth(self.url_txt.text())
-        parent_lists = list()
+        header = get_auth()
+        data = get_url_response(header, self.url_txt.text())
+        video_parent_list = list()
         for d in data:
             children = d["data"]["children"]
             for c in children:
                 try:
+                    img_item = c["data"]["url"]
+                    self.image_links.append(img_item)
+                except KeyError:
+                    continue
+            for c in children:
+                try:
                     parent_list = c["data"]["crosspost_parent_list"]
-                    parent_lists.append(parent_list)
+                    video_parent_list.append(parent_list)
                 except KeyError:
                     continue
 
-        for p in parent_lists:
+        for p in video_parent_list:
             try:
                 video_link = p[0]["media"]["reddit_video"]["fallback_url"]
-                self.video_links.append(video_link)
+                self.media_links.append(video_link)
             except KeyError:
                 continue
 
