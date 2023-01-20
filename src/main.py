@@ -16,6 +16,7 @@ class Downloader(QDialog):
         self.download_dest = None
         self.video_links = list()
         self.image_links = list()
+        self.selected_media = list()
         self.init_ui()
         self.set_connections()
 
@@ -36,8 +37,9 @@ class Downloader(QDialog):
         self.download_path_lineedit = QLineEdit()
         # TODO: remove
         # https://www.reddit.com/r/test_random/comments/10guglg/testing_imgs
-        # "https://reddit.com/r/malaysia/comments/vcnhkc/daylight_supermoon_near_the_tip_of_kl_twin_towers"
-        self.url_txt.setText("https://www.reddit.com/r/test_random/comments/10guglg/testing_imgs")
+        # https://reddit.com/r/malaysia/comments/vcnhkc/daylight_supermoon_near_the_tip_of_kl_twin_towers
+        # https://www.reddit.com/r/cinematography/comments/10gfw97/how_would_you_achieve_this_sort_of_shot_wide
+        self.url_txt.setText("https://www.reddit.com/r/cinematography/comments/10gfw97/how_would_you_achieve_this_sort_of_shot_wide")
         self.download_btn = QPushButton("Download")
 
         self.video_label = QLabel("Videos: ")
@@ -84,13 +86,13 @@ class Downloader(QDialog):
             tree_item.setStringList(self.video_links)
             self.video_tree_list.setModel(tree_item)
             # TODO: add feature to multi-select media to download
-            self.selected_media = self.video_links
+            self.selected_media.extend(self.video_links)
 
         if self.image_links:
             img_tree_item = QStringListModel()
             img_tree_item.setStringList(self.image_links)
             self.img_tree_list.setModel(img_tree_item)
-            self.selected_media = self.image_links
+            self.selected_media.extend(self.image_links)
 
     def get_media_links(self):
         # https://reddit.com/r/malaysia/comments/vcnhkc/daylight_supermoon_near_the_tip_of_kl_twin_towers
@@ -101,6 +103,7 @@ class Downloader(QDialog):
         for d in data:
             children = d["data"]["children"]
             for c in children:
+                # TODO: handle img galleries
                 try:
                     img_item = c["data"]["url"]
                     self.image_links.append(img_item)
@@ -128,9 +131,12 @@ class Downloader(QDialog):
         self.download_dest = self.download_path_lineedit.text()
 
     def download(self):
-        # m3u8_To_MP4.download(self.url_txt.text(), mp4_file_dir=self.url)
         for media in self.selected_media:
-            dst_file = os.path.join(self.download_dest, str(self.selected_media.index(media)) + ".mp4")
+            if ".mp4" in media:
+                ext = ".mp4"
+            else:
+                ext = ".jpg"
+            dst_file = os.path.join(self.download_dest, str(self.selected_media.index(media)) + ext)
             dest_path = Path(dst_file)
             with urllib.request.urlopen(media) as response, open(dest_path, 'wb') as x:
                 data = response.read()
