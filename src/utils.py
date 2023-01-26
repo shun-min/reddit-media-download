@@ -1,3 +1,4 @@
+import praw
 import requests
 import requests.auth
 
@@ -7,6 +8,7 @@ id = REDDIT.ID
 secret = REDDIT.SECRET
 username = REDDIT.USERNAME
 password = REDDIT.PASSWORD
+agent = "Reddit automation script"
 
 # use API to get json object of a subreddit page
 OAUTH_ENDPOINT = "https://oauth.reddit.com"
@@ -19,9 +21,7 @@ def get_auth():
     # getting reddit authentication info
     client_auth = requests.auth.HTTPBasicAuth(id, secret)
     post_data = {"grant_type": "password", "username": username, "password": password}
-    headers = {
-        "User-Agent": "Reddit automation script"
-    }
+    headers = {"User-Agent": agent}
 
     # get token access ID
     TOKEN_ACCESS_ENDPOINT = "https://www.reddit.com/api/v1/access_token"
@@ -30,11 +30,20 @@ def get_auth():
         token_id = response.json()["access_token"]
 
     header2 = {
-        "User-Agent": "Reddit automation script",
+        "User-Agent": agent,
         "Authorization": "Bearer" + token_id
     }
 
     return header2
+
+def get_reddit_instance():
+    return praw.Reddit(
+        client_id=id,
+        client_secret=secret,
+        password=password,
+        user_agent=agent,
+        username=username
+    )
 
 
 def get_url_response(header, url):

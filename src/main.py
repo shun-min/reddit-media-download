@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import os
+import re
 import sys
 import urllib
 
@@ -7,7 +8,11 @@ from pathlib import Path
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from utils import get_auth, get_url_response
+from utils import get_auth, get_reddit_instance, get_url_response
+
+class Extensions:
+    MP4 = ".mp4"
+    JPG = ".jpg"
 
 
 class Downloader(QDialog):
@@ -16,6 +21,7 @@ class Downloader(QDialog):
         self.download_dest = None
         self.video_links = list()
         self.image_links = list()
+        self.media_links = list()
         self.selected_media = list()
         self.init_ui()
         self.set_connections()
@@ -25,6 +31,7 @@ class Downloader(QDialog):
         self.setMinimumWidth(500)
         self.setMinimumHeight(250)
 
+        # TODO: Add night mode
         self.vlayout = QVBoxLayout()
         self.src_layout = QHBoxLayout()
         self.src_label = QLabel("Paste url to scrape:")
@@ -94,13 +101,27 @@ class Downloader(QDialog):
             self.img_tree_list.setModel(img_tree_item)
             self.selected_media.extend(self.image_links)
 
+    def get_comments_media(self, submission):
+        video_links = list()
+        # apply DFS to traverse through comments
+        for comment in submission.comments:
+            comment_body = comment.body
+            if Extensions.MP4 not in comment_body:
+                continue
+            print(comment.body)
+            pattern = re.compile(r"""\w+http\w+.mp4""")
+            result = re.match(pattern, comment_body)
+            link = result.groupdict().get("url")
+            video_links.append()
+
     def get_media_links(self):
         # https://reddit.com/r/malaysia/comments/vcnhkc/daylight_supermoon_near_the_tip_of_kl_twin_towers
         # https://v.redd.it/cjurndouho591/DASH_1080.mp4?source=fallback
         header = get_auth()
-        data = get_url_response(header, self.url_txt.text())
+        submission_data = get_url_response(header, self.url_txt.text())
+
         video_parent_list = list()
-        for d in data:
+        for d in submission_data:
             children = d["data"]["children"]
             for c in children:
                 # TODO: handle img galleries
@@ -123,6 +144,13 @@ class Downloader(QDialog):
             except KeyError:
                 continue
 
+        # TODO: Use praw to obtain submission instance
+        reddit = get_reddit_instance()
+        submission = reddit.submission(url=self.url_txt.text())
+        comment_media = self.get_comments_media(submission)
+        if comment_media:
+            self.media_links.extend(comment_media)
+
         self.add_media_to_tree()
 
     def set_directory(self):
@@ -132,10 +160,10 @@ class Downloader(QDialog):
 
     def download(self):
         for media in self.selected_media:
-            if ".mp4" in media:
-                ext = ".mp4"
+            if Extensions.MP4 in media:
+                ext = Extensions.MP4
             else:
-                ext = ".jpg"
+                ext = Extensions.JPG
             dst_file = os.path.join(self.download_dest, str(self.selected_media.index(media)) + ext)
             dest_path = Path(dst_file)
             with urllib.request.urlopen(media) as response, open(dest_path, 'wb') as x:
