@@ -21,7 +21,7 @@ class Downloader(QDialog):
         self.download_dest = None
         self.video_links = list()
         self.image_links = list()
-        self.media_links = list()
+        self.misc_links = list()
         self.selected_media = list()
         self.init_ui()
         self.set_connections()
@@ -55,16 +55,23 @@ class Downloader(QDialog):
         self.image_label = QLabel("Images: ")
         self.img_tree_list = QTreeView()
         self.img_tree_list.setHeaderHidden(True)
+        self.misc_label = QLabel("Misc: ")
+        self.misc_tree_list = QTreeView()
+        self.misc_tree_list.setHeaderHidden(True)
 
         self.media_layout = QHBoxLayout()
         self.video_layout = QVBoxLayout()
         self.image_layout = QVBoxLayout()
+        self.misc_layout = QVBoxLayout()
         self.video_layout.addWidget(self.video_label)
         self.video_layout.addWidget(self.video_tree_list)
         self.image_layout.addWidget(self.image_label)
         self.image_layout.addWidget(self.img_tree_list)
+        self.misc_layout.addWidget(self.misc_label)
+        self.misc_layout.addWidget(self.misc_tree_list)
         self.media_layout.addLayout(self.video_layout)
         self.media_layout.addLayout(self.image_layout)
+        self.media_layout.addLayout(self.misc_layout)
 
         self.src_layout.addWidget(self.src_label)
         self.src_layout.addWidget(self.url_txt)
@@ -101,22 +108,25 @@ class Downloader(QDialog):
             self.img_tree_list.setModel(img_tree_item)
             self.selected_media.extend(self.image_links)
 
+
     def get_comments_media(self, submission):
-        video_links = list()
+        media_links = list()
         # apply DFS to traverse through comments
         for comment in submission.comments:
             comment_body = comment.body
-            if Extensions.MP4 not in comment_body:
-                continue
-            print(comment.body)
-            pattern = re.compile(r"""\w+http\w+.mp4""")
-            result = re.match(pattern, comment_body)
-            link = result.groupdict().get("url")
-            video_links.append()
+            # print(comment_body)
+            pattern = re.compile(r""".+(?P<url>http[s?]://[\w./?=]+).+""")
+            for line in comment_body.split("\n"):
+                result = re.match(pattern, line)
+                if not result:
+                    continue
+                print(line)
+                link = result.groupdict().get("url")
+                media_links.append(link)
+        return media_links
 
     def get_media_links(self):
-        # https://reddit.com/r/malaysia/comments/vcnhkc/daylight_supermoon_near_the_tip_of_kl_twin_towers
-        # https://v.redd.it/cjurndouho591/DASH_1080.mp4?source=fallback
+        # TODO: remove this, use PRAW
         header = get_auth()
         submission_data = get_url_response(header, self.url_txt.text())
 
@@ -136,11 +146,11 @@ class Downloader(QDialog):
                     video_parent_list.append(parent_list)
                 except KeyError:
                     continue
-
+        # better way to sort
         for p in video_parent_list:
             try:
                 video_link = p[0]["media"]["reddit_video"]["fallback_url"]
-                self.media_links.append(video_link)
+                self.video_links.append(video_link)
             except KeyError:
                 continue
 
@@ -149,7 +159,7 @@ class Downloader(QDialog):
         submission = reddit.submission(url=self.url_txt.text())
         comment_media = self.get_comments_media(submission)
         if comment_media:
-            self.media_links.extend(comment_media)
+            self.video_links.extend(comment_media)
 
         self.add_media_to_tree()
 
@@ -173,7 +183,6 @@ class Downloader(QDialog):
 
 if __name__ == "__main__":
     app = QApplication([])
-
     downlaoder = Downloader()
     downlaoder.show()
 
