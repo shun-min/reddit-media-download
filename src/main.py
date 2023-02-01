@@ -10,9 +10,12 @@ from PyQt5.QtCore import *
 
 from utils import get_auth, get_reddit_instance, get_url_response
 
+
 class Extensions:
     MP4 = ".mp4"
+    MOV = ".mov"
     JPG = ".jpg"
+    PNG = ".png"
 
 
 class Downloader(QDialog):
@@ -108,13 +111,17 @@ class Downloader(QDialog):
             self.img_tree_list.setModel(img_tree_item)
             self.selected_media.extend(self.image_links)
 
+        if self.misc_links:
+            misc_tree_item = QStringListModel()
+            misc_tree_item.setStringList(self.misc_links)
+            self.misc_tree_list.setModel(misc_tree_item)
+            self.selected_media.extend(self.misc_links)
 
-    def get_comments_media(self, submission):
+    def get_media_from_comments(self, submission):
         media_links = list()
         # apply DFS to traverse through comments
         for comment in submission.comments:
             comment_body = comment.body
-            # print(comment_body)
             pattern = re.compile(r""".+(?P<url>http[s?]://[\w./?=]+).+""")
             for line in comment_body.split("\n"):
                 result = re.match(pattern, line)
@@ -123,43 +130,48 @@ class Downloader(QDialog):
                 print(line)
                 link = result.groupdict().get("url")
                 media_links.append(link)
-        return media_links
+
+        for link in media_links:
+            if
+            self.video_links.extend(comment_media)
+
+    def sort_media(self):
+
 
     def get_media_links(self):
         # TODO: remove this, use PRAW
-        header = get_auth()
-        submission_data = get_url_response(header, self.url_txt.text())
-
-        video_parent_list = list()
-        for d in submission_data:
-            children = d["data"]["children"]
-            for c in children:
-                # TODO: handle img galleries
-                try:
-                    img_item = c["data"]["url"]
-                    self.image_links.append(img_item)
-                except KeyError:
-                    continue
-            for c in children:
-                try:
-                    parent_list = c["data"]["crosspost_parent_list"]
-                    video_parent_list.append(parent_list)
-                except KeyError:
-                    continue
-        # better way to sort
-        for p in video_parent_list:
-            try:
-                video_link = p[0]["media"]["reddit_video"]["fallback_url"]
-                self.video_links.append(video_link)
-            except KeyError:
-                continue
-
+        # header = get_auth()
+        # submission_data = get_url_response(header, self.url_txt.text())
+        #
+        # video_parent_list = list()
+        # for d in submission_data:
+        #     children = d["data"]["children"]
+        #     for c in children:
+        #         # TODO: handle img galleries
+        #         try:
+        #             img_item = c["data"]["url"]
+        #             self.image_links.append(img_item)
+        #         except KeyError:
+        #             continue
+        #     for c in children:
+        #         try:
+        #             parent_list = c["data"]["crosspost_parent_list"]
+        #             video_parent_list.append(parent_list)
+        #         except KeyError:
+        #             continue
+        # # better way to sort
+        # for p in video_parent_list:
+        #     try:
+        #         video_link = p[0]["media"]["reddit_video"]["fallback_url"]
+        #         self.video_links.append(video_link)
+        #     except KeyError:
+        #         continue
         # TODO: Use praw to obtain submission instance
         reddit = get_reddit_instance()
         submission = reddit.submission(url=self.url_txt.text())
-        comment_media = self.get_comments_media(submission)
-        if comment_media:
-            self.video_links.extend(comment_media)
+
+        submission_media = self.get_media_from_post(submission)
+        comment_media = self.get_media_from_comments(submission)
 
         self.add_media_to_tree()
 
