@@ -22,6 +22,7 @@ class Downloader(QDialog):
     def __init__(self):
         super().__init__()
         self.download_dest = None
+        self.media_links = list()
         self.video_links = list()
         self.image_links = list()
         self.misc_links = list()
@@ -118,7 +119,6 @@ class Downloader(QDialog):
             self.selected_media.extend(self.misc_links)
 
     def get_media_from_comments(self, submission):
-        media_links = list()
         # apply DFS to traverse through comments
         for comment in submission.comments:
             comment_body = comment.body
@@ -129,14 +129,19 @@ class Downloader(QDialog):
                     continue
                 print(line)
                 link = result.groupdict().get("url")
-                media_links.append(link)
+                self.media_links.append(link)
 
-        for link in media_links:
-            if
-            self.video_links.extend(comment_media)
+    def get_media_from_post(self, submission):
+        print("get media from post")
 
     def sort_media(self):
-
+        for link in self.media_links:
+            if link.endswith(Extensions.MP4) or link.endswith(Extensions.MOV):
+                self.video_links.append(link)
+            if link.endswith(Extensions.JPG) or link.endswith(Extensions.PNG):
+                self.image_links.append(link)
+            else:
+                self.misc_links.append(link)
 
     def get_media_links(self):
         # TODO: remove this, use PRAW
@@ -147,7 +152,7 @@ class Downloader(QDialog):
         # for d in submission_data:
         #     children = d["data"]["children"]
         #     for c in children:
-        #         # TODO: handle img galleries
+        #
         #         try:
         #             img_item = c["data"]["url"]
         #             self.image_links.append(img_item)
@@ -172,7 +177,8 @@ class Downloader(QDialog):
 
         submission_media = self.get_media_from_post(submission)
         comment_media = self.get_media_from_comments(submission)
-
+        # TODO: handle img galleries
+        self.sort_media()
         self.add_media_to_tree()
 
     def set_directory(self):
