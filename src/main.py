@@ -11,11 +11,16 @@ from PyQt5.QtCore import *
 from utils import get_auth, get_reddit_instance, get_url_response
 
 
-class Extensions:
-    MP4 = ".mp4"
-    MOV = ".mov"
-    JPG = ".jpg"
-    PNG = ".png"
+video_extensions = [
+    "mp4",
+    "mov",
+]
+img_extensions = [
+    "jpg",
+    "png",
+    "exr",
+    "dpx",
+]
 
 
 class Downloader(QDialog):
@@ -45,6 +50,10 @@ class Downloader(QDialog):
         self.dst_label = QLabel("Select destination folder")
         self.dir_btn = QPushButton("Select...")
         self.get_media_btn = QPushButton("Get Media from URL")
+        self.select_all_media_btn = QPushButton("Select all media")
+        self.video_download_format = QRadioButton()
+        self.img_download_format = QRadioButton()
+        self.misc_download_format = QRadioButton()
         self.download_path_lineedit = QLineEdit()
         # TODO: remove
         # https://www.reddit.com/r/test_random/comments/10guglg/testing_imgs
@@ -63,6 +72,10 @@ class Downloader(QDialog):
         self.misc_tree_list = QTreeView()
         self.misc_tree_list.setHeaderHidden(True)
 
+        self.src_layout.addWidget(self.src_label)
+        self.src_layout.addWidget(self.url_txt)
+        self.src_layout.addWidget(self.get_media_btn)
+
         self.media_layout = QHBoxLayout()
         self.video_layout = QVBoxLayout()
         self.image_layout = QVBoxLayout()
@@ -77,14 +90,12 @@ class Downloader(QDialog):
         self.media_layout.addLayout(self.image_layout)
         self.media_layout.addLayout(self.misc_layout)
 
-        self.src_layout.addWidget(self.src_label)
-        self.src_layout.addWidget(self.url_txt)
-        self.src_layout.addWidget(self.get_media_btn)
 
         self.dst_layout.addWidget(self.download_path_lineedit)
         self.dst_layout.addWidget(self.dir_btn)
 
         self.vlayout.addLayout(self.src_layout)
+        self.vlayout.addWidget(self.select_all_media_btn)
         self.vlayout.addLayout(self.media_layout)
         self.vlayout.insertSpacing(1, 20)
         self.vlayout.addWidget(self.dst_label)
@@ -136,47 +147,19 @@ class Downloader(QDialog):
 
     def sort_media(self):
         for link in self.media_links:
-            if link.endswith(Extensions.MP4) or link.endswith(Extensions.MOV):
+            if any(ext in link for ext in video_extensions):
                 self.video_links.append(link)
-            if link.endswith(Extensions.JPG) or link.endswith(Extensions.PNG):
+            elif any(ext in link for ext in img_extensions):
                 self.image_links.append(link)
             else:
                 self.misc_links.append(link)
 
     def get_media_links(self):
-        # TODO: remove this, use PRAW
-        # header = get_auth()
-        # submission_data = get_url_response(header, self.url_txt.text())
-        #
-        # video_parent_list = list()
-        # for d in submission_data:
-        #     children = d["data"]["children"]
-        #     for c in children:
-        #
-        #         try:
-        #             img_item = c["data"]["url"]
-        #             self.image_links.append(img_item)
-        #         except KeyError:
-        #             continue
-        #     for c in children:
-        #         try:
-        #             parent_list = c["data"]["crosspost_parent_list"]
-        #             video_parent_list.append(parent_list)
-        #         except KeyError:
-        #             continue
-        # # better way to sort
-        # for p in video_parent_list:
-        #     try:
-        #         video_link = p[0]["media"]["reddit_video"]["fallback_url"]
-        #         self.video_links.append(video_link)
-        #     except KeyError:
-        #         continue
-        # TODO: Use praw to obtain submission instance
         reddit = get_reddit_instance()
         submission = reddit.submission(url=self.url_txt.text())
 
-        submission_media = self.get_media_from_post(submission)
-        comment_media = self.get_media_from_comments(submission)
+        self.get_media_from_post(submission)
+        self.get_media_from_comments(submission)
         # TODO: handle img galleries
         self.sort_media()
         self.add_media_to_tree()
@@ -188,10 +171,11 @@ class Downloader(QDialog):
 
     def download(self):
         for media in self.selected_media:
-            if Extensions.MP4 in media:
-                ext = Extensions.MP4
+            # TODO: download as certain format
+            if any(ext in media for ext in video_extensions):
+                ext = ".mp4"
             else:
-                ext = Extensions.JPG
+                ext = ".jpg"
             dst_file = os.path.join(self.download_dest, str(self.selected_media.index(media)) + ext)
             dest_path = Path(dst_file)
             with urllib.request.urlopen(media) as response, open(dest_path, 'wb') as x:
